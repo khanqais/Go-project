@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Todo struct {
+type Todo_mongoo struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Completed bool               `json:"completed" bson:"completed"`
 	Body      string             `json:"body" bson:"body"`
@@ -61,7 +61,7 @@ func main() {
 		log.Fatal("Error pinging MongoDB:", err)
 	}
 
-	fmt.Println("✅ Connected to MongoDB successfully!")
+	fmt.Println("Connected to MongoDB successfully!")
 
 	// Set up collection
 	collection = client.Database("GO").Collection("todos")
@@ -94,34 +94,42 @@ func main() {
 		PORT = "5000"
 	}
 
-	fmt.Printf("🚀 Server starting on port %s...\n", PORT)
+	fmt.Printf("Server starting on port %s...\n", PORT)
 	log.Fatal(app.Listen("0.0.0.0:" + PORT))
 }
 
 // Get all todos
 func getTodos(c *fiber.Ctx) error {
+	fmt.Println(" getTodos function called!")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var todos []Todo
+	fmt.Println("About to query MongoDB...")
 
+	var todos []Todo_mongoo
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
+		fmt.Printf("MongoDB query failed: %v\n", err)
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch todos",
 		})
 	}
 	defer cursor.Close(ctx)
 
+	fmt.Println("MongoDB query successful")
+
 	if err = cursor.All(ctx, &todos); err != nil {
+		fmt.Printf(" Cursor decode failed: %v\n", err)
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to decode todos",
 		})
 	}
 
-	// Handle empty results
+	fmt.Printf("Found %d todos\n", len(todos))
+
 	if todos == nil {
-		todos = []Todo{}
+		todos = []Todo_mongoo{}
 	}
 
 	return c.Status(200).JSON(fiber.Map{
@@ -136,7 +144,7 @@ func createTodo(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var todo Todo
+	var todo Todo_mongoo
 
 	// Parse request body
 	if err := c.BodyParser(&todo); err != nil {
@@ -169,7 +177,7 @@ func createTodo(c *fiber.Ctx) error {
 	// Set the ID from the insert result
 	todo.ID = result.InsertedID.(primitive.ObjectID)
 
-	fmt.Printf("✅ Todo created: %+v\n", todo)
+	fmt.Printf("Todo created: %+v\n", todo)
 
 	return c.Status(201).JSON(fiber.Map{
 		"success": true,
@@ -221,7 +229,7 @@ func updateTodo(c *fiber.Ctx) error {
 	}
 
 	// Fetch and return updated todo
-	var updatedTodo Todo
+	var updatedTodo Todo_mongoo
 	err = collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&updatedTodo)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -229,7 +237,7 @@ func updateTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Printf("✅ Todo updated: %+v\n", updatedTodo)
+	fmt.Printf("Todo updated: %+v\n", updatedTodo)
 
 	return c.Status(200).JSON(fiber.Map{
 		"success": true,
@@ -265,7 +273,7 @@ func deleteTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Printf("✅ Todo deleted with ID: %s\n", idParam)
+	fmt.Printf("Todo deleted with ID: %s\n", idParam)
 
 	return c.Status(200).JSON(fiber.Map{
 		"success": true,
