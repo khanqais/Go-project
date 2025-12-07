@@ -26,13 +26,12 @@ var collection *mongo.Collection
 func main() {
 	fmt.Println("Starting Todo API...")
 
-	// Load environment variables
+	
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Get MongoDB URI
 	mongoURL := os.Getenv("MONGO_URI")
 	if mongoURL == "" {
 		log.Fatal("MONGO_URI not found in environment variables")
